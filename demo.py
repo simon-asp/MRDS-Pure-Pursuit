@@ -81,11 +81,17 @@ def getPose():
         return UnexpectedResponse(response)
 
 
-def getNextPoint():
+def getNextPointFromPath():
     """Gets the next point from look-a-head distance of the robot"""
+
     with open('path/path-to-bed.json') as path_file:
         path = json.load(path_file)
-        pprint(path)
+
+        print(currentIndex)
+        pprint(path[currentIndex]['Pose']['Position']['X'])
+        pprint(path[currentIndex]['Pose']['Position']['Y'])
+
+        currentIndex += 4
 
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
@@ -131,4 +137,5 @@ def getBearing():
     return bearing(getPose()['Pose']['Orientation'])
 
 if __name__ == '__main__':
-    getNextPoint()
+    for x in range(0, 3):
+        getNextPointFromPath()
