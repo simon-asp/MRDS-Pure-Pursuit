@@ -10,6 +10,8 @@ Updated by Ola Ringdahl 204-09-11
 MRDS_URL = 'localhost:50000'
 
 import httplib, json, time
+from pprint import pprint
+
 from math import sin, cos, pi, atan2
 
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
@@ -79,6 +81,11 @@ def getPose():
         return UnexpectedResponse(response)
 
 
+def getNextPoint():
+    """Gets the next point from look-a-head distance of the robot"""
+    with open('path/path-to-bed.json') as path_file:
+        path = json.load(path_file)
+        pprint(path)
 
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
@@ -123,35 +130,5 @@ def getBearing():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
 
-
 if __name__ == '__main__':
-    print 'Sending commands to MRDS server', MRDS_URL
-    try:
-        print 'Telling the robot to go straight ahead.'
-        response = postSpeed(0, 0.1)
-        print 'Waiting for a while...'
-        time.sleep(3)
-        print 'Telling the robot to go in a circle.'
-        response = postSpeed(0.4, 0.1)
-    except UnexpectedResponse, ex:
-        print 'Unexpected response from server when sending speed commands:', ex
-
-    try:
-        laser = getLaser()
-        laserAngles = getLaserAngles()
-        print 'The rightmost laser bean has angle %.3f deg from x-axis (straight forward) and distance %.3f meters.' % (
-            laserAngles[0], laser['Echoes'][0]
-        )
-        print 'Beam 1: %.3f Beam 269: %.3f Beam 270: %.3f' % (
-        laserAngles[0] * 180 / pi, laserAngles[269] * 180 / pi, laserAngles[270] * 180 / pi)
-    except UnexpectedResponse, ex:
-        print 'Unexpected response from server when reading laser data:', ex
-
-    try:
-        pose = getPose()
-        print 'Current position: ', pose['Pose']['Position']
-        for t in range(30):
-            print 'Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getBearing())
-            time.sleep(1)
-    except UnexpectedResponse, ex:
-        print 'Unexpected response from server when reading position:', ex
+    getNextPoint()
