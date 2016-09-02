@@ -8,6 +8,7 @@ Updated by Ola Ringdahl 204-09-11
 """
 
 MRDS_URL = 'localhost:50000'
+pathIndex = 0
 
 import httplib, json, time
 from pprint import pprint
@@ -83,15 +84,16 @@ def getPose():
 
 def getNextPointFromPath():
     """Gets the next point from look-a-head distance of the robot"""
+    global pathIndex
 
     with open('path/path-to-bed.json') as path_file:
         path = json.load(path_file)
 
-        print(currentIndex)
-        pprint(path[currentIndex]['Pose']['Position']['X'])
-        pprint(path[currentIndex]['Pose']['Position']['Y'])
+        print(pathIndex)
+        pprint(path[pathIndex]['Pose']['Position']['X'])
+        pprint(path[pathIndex]['Pose']['Position']['Y'])
 
-        currentIndex += 4
+        pathIndex += 4
 
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
