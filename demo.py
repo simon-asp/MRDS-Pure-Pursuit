@@ -79,6 +79,7 @@ def getPose():
         return UnexpectedResponse(response)
 
 
+
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
 
@@ -89,7 +90,7 @@ def rotate(q, v):
 
 def quaternion(v):
     q = v.copy()
-    q['W'] = 0.0;
+    q['W'] = 0.0
     return q
 
 
@@ -126,7 +127,7 @@ def getBearing():
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
     try:
-        print 'Telling the robot to go streight ahead.'
+        print 'Telling the robot to go straight ahead.'
         response = postSpeed(0, 0.1)
         print 'Waiting for a while...'
         time.sleep(3)
@@ -138,7 +139,7 @@ if __name__ == '__main__':
     try:
         laser = getLaser()
         laserAngles = getLaserAngles()
-        print 'The rightmost laser bean has angle %.3f deg from x-axis (streight forward) and distance %.3f meters.' % (
+        print 'The rightmost laser bean has angle %.3f deg from x-axis (straight forward) and distance %.3f meters.' % (
             laserAngles[0], laser['Echoes'][0]
         )
         print 'Beam 1: %.3f Beam 269: %.3f Beam 270: %.3f' % (
