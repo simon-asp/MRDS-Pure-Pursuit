@@ -1,14 +1,13 @@
 """
-Example demonstrating how to communicate with Microsoft Robotic Developer
-Studio 4 via the Lokarria http interface.
+    Example demonstrating how to communicate with Microsoft Robotic Developer
+    Studio 4 via the Lokarria http interface.
+    
+    Author: Erik Billing (billing@cs.umu.se)
+    
+    Updated by Ola Ringdahl 204-09-11
+    """
 
-Author: Erik Billing (billing@cs.umu.se)
-
-Updated by Ola Ringdahl 204-09-11
-"""
-
-MRDS_URL = 'localhost:50000'
-pathIndex = 0
+MRDS_URL = '10.211.55.4:50000'
 
 import httplib, json, time
 from pprint import pprint
@@ -82,17 +81,12 @@ def getPose():
         return UnexpectedResponse(response)
 
 
-def getNextPointFromPath():
+def getNextPathPoint():
     """Gets the next point from look-a-head distance of the robot"""
-    global pathIndex
-
     with open('path/path-to-bed.json') as path_file:
         path = json.load(path_file)
-
-        print(pathIndex)
-        pprint(path[pathIndex]['Pose'])
-
-        pathIndex += 4
+        pprint(path)
+        print(path_file)
 
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
@@ -133,31 +127,55 @@ def qmult(q1, q2):
     return q
 
 
-def getBearing():
+def getHeading():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
 
+def getPosition():
+    """Returns the XYZ position"""
+    return getPose()['Pose']['Position']
+
+"""Convert function test"""
+def convertCoordinates():
+    list1 = []
+    pos = getPosition()
+    heading = getHeading()
+    yaw = getPose()['Pose']['Orientation']['W']
+    x = pos['X'];
+    y = pos['Y'];
+    xP = heading['X'];
+    yP = heading['Y'];
+    
+    print 'xP: ', xP
+    print 'yp: ', yP
+    
+    x0 = x - xP*cos(yaw) + yP*sin(yaw)
+    y0 = y - xP*sin(yaw) - yP*cos(yaw)
+    
+    list1.insert(0,x0)
+    list1.insert(1,y0)
+    
+    return list1
+
+
+
 if __name__ == '__main__':
-    # for x in range(0, 3):
-        # getNextPointFromPath()
+    print 'Sending commands to MRDS server', MRDS_URL
+    try:
+        print 'Telling the robot to go straight ahead.'
+        response = postSpeed(0,0)
+    
+    except UnexpectedResponse, ex:
+        print 'Unexpected response from server when sending speed commands:', ex
 
-        print 'Sending commands to MRDS server', MRDS_URL
-        try:
-            print 'Telling the robot to go straight ahead.'
-            #response = postSpeed(0, 0.1)
-            print 'Waiting for a while...'
-            #print 'Telling the robot to go in a circle.'
-            response = postSpeed(0, 1)
-            time.sleep(2)
-            response = postSpeed(0, 0)
-        except UnexpectedResponse, ex:
-            print 'Unexpected response from server when sending speed commands:', ex
-
-        try:
-            pose = getPose()
-            print 'Current position: ', pose['Pose']['Position']
-            for t in range(1):
-                print 'Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getBearing())
-                time.sleep(1)
-        except UnexpectedResponse, ex:
-            print 'Unexpected response from server when reading position:', ex
+    try:
+        for t in range(1):
+            print 'Current position: X:{X:.3}, Y:{Y:.3}'.format(**getPosition())
+            print 'Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
+            print getPose()
+            #print "Test Convert: X:{X:.3}" .format(**convertCoordinates())
+            print convertCoordinates()
+            
+            time.sleep(1)
+except UnexpectedResponse, ex:
+    print 'Unexpected response from server when reading position:', ex
