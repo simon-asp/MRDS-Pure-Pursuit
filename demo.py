@@ -1,13 +1,13 @@
 """
     Example demonstrating how to communicate with Microsoft Robotic Developer
     Studio 4 via the Lokarria http interface.
-    
+
     Author: Erik Billing (billing@cs.umu.se)
-    
+
     Updated by Ola Ringdahl 204-09-11
     """
-
-MRDS_URL = '10.211.55.4:50000'
+from ip import *
+MRDS_URL = serverIp
 
 import httplib, json, time
 from pprint import pprint
@@ -135,6 +135,10 @@ def getPosition():
     """Returns the XYZ position"""
     return getPose()['Pose']['Position']
 
+def getBearing():
+    """Returns the XY Orientation as a bearing unit vector"""
+    return bearing(getPose()['Pose']['Orientation'])
+
 """Convert function test"""
 def convertCoordinates():
     list1 = []
@@ -145,26 +149,22 @@ def convertCoordinates():
     y = pos['Y'];
     xP = heading['X'];
     yP = heading['Y'];
-    
-    print 'xP: ', xP
-    print 'yp: ', yP
-    
-    x0 = x - xP*cos(yaw) + yP*sin(yaw)
-    y0 = y - xP*sin(yaw) - yP*cos(yaw)
-    
+    print 'yaw:', yaw
+
+    x0 = x - xP*cos(0) + yP*sin(0)
+    y0 = y - xP*sin(0) - yP*cos(0)
+
     list1.insert(0,x0)
     list1.insert(1,y0)
-    
+
     return list1
-
-
 
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
     try:
         print 'Telling the robot to go straight ahead.'
-        response = postSpeed(0,0)
-    
+       # response = postSpeed(0,0)
+
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when sending speed commands:', ex
 
@@ -175,7 +175,7 @@ if __name__ == '__main__':
             print getPose()
             #print "Test Convert: X:{X:.3}" .format(**convertCoordinates())
             print convertCoordinates()
-            
+
             time.sleep(1)
-except UnexpectedResponse, ex:
-    print 'Unexpected response from server when reading position:', ex
+    except UnexpectedResponse, ex:
+        print 'Unexpected response from server when reading position:', ex
