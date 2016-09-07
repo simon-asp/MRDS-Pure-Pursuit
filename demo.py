@@ -6,10 +6,8 @@
 
     Updated by Ola Ringdahl 204-09-11
     """
-from ip import *
-MRDS_URL = serverIp
-
-bajs = 'bajs'
+from serverIp import *
+MRDS_URL = ip
 
 import httplib, json, time
 from pprint import pprint
