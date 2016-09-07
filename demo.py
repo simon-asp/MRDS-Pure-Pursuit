@@ -90,8 +90,7 @@ def getNextPointFromPath():
         path = json.load(path_file)
 
         print(pathIndex)
-        pprint(path[pathIndex]['Pose']['Position']['X'])
-        pprint(path[pathIndex]['Pose']['Position']['Y'])
+        pprint(path[pathIndex]['Pose'])
 
         pathIndex += 4
 
@@ -139,5 +138,26 @@ def getBearing():
     return bearing(getPose()['Pose']['Orientation'])
 
 if __name__ == '__main__':
-    for x in range(0, 3):
-        getNextPointFromPath()
+    # for x in range(0, 3):
+        # getNextPointFromPath()
+
+        print 'Sending commands to MRDS server', MRDS_URL
+        try:
+            print 'Telling the robot to go straight ahead.'
+            #response = postSpeed(0, 0.1)
+            print 'Waiting for a while...'
+            #print 'Telling the robot to go in a circle.'
+            response = postSpeed(0, 1)
+            time.sleep(2)
+            response = postSpeed(0, 0)
+        except UnexpectedResponse, ex:
+            print 'Unexpected response from server when sending speed commands:', ex
+
+        try:
+            pose = getPose()
+            print 'Current position: ', pose['Pose']['Position']
+            for t in range(1):
+                print 'Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getBearing())
+                time.sleep(1)
+        except UnexpectedResponse, ex:
+            print 'Unexpected response from server when reading position:', ex
