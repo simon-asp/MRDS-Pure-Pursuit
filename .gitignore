@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-ip.py
 
 # C extensions
 *.so
@@ -88,3 +87,6 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Ignore the ip-file
+.serverIp
