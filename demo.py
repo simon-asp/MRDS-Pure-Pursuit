@@ -9,6 +9,8 @@
 from ip import *
 MRDS_URL = serverIp
 
+bajs = 'bajs'
+
 import httplib, json, time
 from pprint import pprint
 
