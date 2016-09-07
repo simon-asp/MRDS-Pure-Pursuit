@@ -6,8 +6,8 @@
 
     Updated by Ola Ringdahl 204-09-11
     """
-from ip import *
-MRDS_URL = serverIp
+from serverIp import *
+MRDS_URL = ip
 
 bajs = 'bajs'
 
