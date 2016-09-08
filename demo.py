@@ -6,7 +6,7 @@
 
     Updated by Ola Ringdahl 204-09-11
     """
-from serverIp import *
+from serverIp2 import *
 MRDS_URL = ip
 
 import httplib, json, time
