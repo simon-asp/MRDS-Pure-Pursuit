@@ -144,15 +144,18 @@ def convertCoordinates():
     list1 = []
     pos = getPosition()
     heading = getHeading()
-    yaw = getPose()['Pose']['Orientation']['W']
-    x = pos['X'];
-    y = pos['Y'];
-    xP = heading['X'];
-    yP = heading['Y'];
-    print 'yaw:', yaw
+    x = pos['X']
+    y = pos['Y']
+    xP = heading['X']
+    yP = heading['Y']
 
-    x0 = x - xP*cos(0) + yP*sin(0)
-    y0 = y - xP*sin(0) - yP*cos(0)
+    # The inverse of the difference of the angles gives the right yaw
+    yaw = atan2(1/yP-y, 1/xP-x)
+    print yaw
+
+    # Convert the coordinates using this rule
+    x0 = x - xP*cos(yaw) + yP*sin(yaw)
+    y0 = y - xP*sin(yaw) - yP*cos(yaw)
 
     list1.insert(0,x0)
     list1.insert(1,y0)
@@ -163,7 +166,10 @@ if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
     try:
         print 'Telling the robot to go straight ahead.'
-       # response = postSpeed(0,0)
+        #response = postSpeed(0.2,0)
+        time.sleep(1)
+        response = postSpeed(0,0)
+
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when sending speed commands:', ex
