@@ -8,11 +8,12 @@
     """
 from serverIp import *
 MRDS_URL = ip
+index = 0
 
 import httplib, json, time
 from pprint import pprint
 
-from math import sin, cos, pi, atan2
+from math import sin, cos, pi, atan2, sqrt
 
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
@@ -80,14 +81,6 @@ def getPose():
     else:
         return UnexpectedResponse(response)
 
-
-def getNextPathPoint():
-    """Gets the next point from look-a-head distance of the robot"""
-    with open('path/path-to-bed.json') as path_file:
-        path = json.load(path_file)
-        pprint(path)
-        print(path_file)
-
 def bearing(q):
     return rotate(q, {'X': 1.0, 'Y': 0.0, "Z": 0.0})
 
@@ -126,6 +119,19 @@ def qmult(q1, q2):
     q["Z"] = q1["W"] * q2["Z"] + q1["X"] * q2["Y"] - q1["Y"] * q2["X"] + q1["Z"] * q2["W"]
     return q
 
+"""Gets the next point from look-a-head distance of the robot"""
+def getGoalPoint():
+    list = []
+    global index
+    with open('path/path-around-table.json') as path_file:
+        path = json.load(path_file)
+
+        list.insert(0, path[index]['Pose']['Position']['X'])
+        list.insert(1, path[index]['Pose']['Position']['Y'])
+        print 'index: ', index
+        index += 5
+        print 'goalpoint: ', list
+        return list
 
 def getHeading():
     """Returns the XY Orientation as a bearing unit vector"""
@@ -139,49 +145,64 @@ def getBearing():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
 
-"""Convert function test"""
-def convertCoordinates():
+"""Convert the robot position to RCS"""
+def convertToRcs(x0, y0):
     list1 = []
-    pos = getPosition()
     heading = getHeading()
-    x = pos['X']
-    y = pos['Y']
+
     xP = heading['X']
     yP = heading['Y']
 
     # The inverse of the difference of the angles gives the right yaw
-    yaw = atan2(1/yP-y, 1/xP-x)
-    print yaw
-
+    yaw = atan2(1/yP-y0, 1/xP-x0)
+    print 'yaw, ', yaw
     # Convert the coordinates using this rule
-    x0 = x - xP*cos(yaw) + yP*sin(yaw)
-    y0 = y - xP*sin(yaw) - yP*cos(yaw)
+    x = x0 + xP*cos(yaw) - yP*sin(yaw)
+    y = y0 + xP*sin(yaw) + yP*cos(yaw)
 
-    list1.insert(0,x0)
-    list1.insert(1,y0)
+    list1.insert(0,x)
+    list1.insert(1,y)
 
     return list1
 
+"""Calculate the curvature to the goal point for the robot to follow"""
+def calculateCurvatureToGp():
+
+    # Convert the goal point to the robot's coordinates
+    gP = getGoalPoint()
+    gPList = convertToRcs(gP[0], gP[1])
+
+    print 'gp converted: ', gPList
+    x = gPList[0]
+    y = gPList[1]
+
+    # Calculate the tangent to the goal point, l
+    l = sqrt(x**2) + sqrt(y**2)
+
+    # Calculate the curvature, gamma
+    gamma = 2*x / l**2
+    print 'gamma: ', gamma
+    print ' '
+
+    return gamma
+
+
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
-    try:
-        print 'Telling the robot to go straight ahead.'
-        #response = postSpeed(0.2,0)
-        time.sleep(1)
-        response = postSpeed(0,0)
-
-
-    except UnexpectedResponse, ex:
-        print 'Unexpected response from server when sending speed commands:', ex
 
     try:
-        for t in range(1):
-            print 'Current position: X:{X:.3}, Y:{Y:.3}'.format(**getPosition())
-            print 'Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
-            print getPose()
-            #print "Test Convert: X:{X:.3}" .format(**convertCoordinates())
-            print convertCoordinates()
+        for t in range(1000):
+            print 'Robot Current position: X:{X:.3}, Y:{Y:.3}'.format(**getPosition())
+            print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
+            pos = getPosition()
+            print 'Robots position in RCS: ', convertToRcs(pos['X'], pos['Y'])
 
-            time.sleep(1)
+            gamma = calculateCurvatureToGp()
+            linearSpeed = 0.2
+            angularSpeed = gamma * linearSpeed
+            response = postSpeed(angularSpeed, linearSpeed)
+            time.sleep(0.1)
+
+
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
