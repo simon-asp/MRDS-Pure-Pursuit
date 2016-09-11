@@ -119,20 +119,6 @@ def qmult(q1, q2):
     q["Z"] = q1["W"] * q2["Z"] + q1["X"] * q2["Y"] - q1["Y"] * q2["X"] + q1["Z"] * q2["W"]
     return q
 
-"""Gets the next point from look-a-head distance of the robot"""
-def getGoalPoint():
-    list = []
-    global index
-    with open('path/path-around-table.json') as path_file:
-        path = json.load(path_file)
-
-        list.insert(0, path[index]['Pose']['Position']['X'])
-        list.insert(1, path[index]['Pose']['Position']['Y'])
-        print 'index: ', index
-        index += 5
-        print 'goalpoint: ', list
-        return list
-
 def getHeading():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
@@ -145,63 +131,103 @@ def getBearing():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
 
-"""Convert the robot position to RCS"""
-def convertToRcs(x0, y0):
+"""Add all coordinates in the path to a path stack, and reverse it so it works as a stack"""
+def makePath():
+    stack = []
+    with open('path/path-around-table.json') as path_file:
+        jsonPath = json.load(path_file)
+        for i in range (len(jsonPath)):
+            stack.append(jsonPath[i]['Pose']['Position'])
+        stack.reverse()
+        return stack
+
+"""Get the next goal point from the robot's position from a fixed look-a-head distance"""
+def getGoalPoint(path, rpos):
+    lookAHead = 0.03
+
+    for i in range (len(path)):
+        p = path.pop()
+        dx = p['X'] - rpos['X']
+        dy = p['Y'] - rpos['Y']
+
+        l = sqrt((dx**2)+(dy**2))
+        print 'pythagoras: ', l
+
+        print 'popped path: ', p, 'index: ', i
+
+        if l > lookAHead:
+            print 'l: ', l
+            print 'i: ', i
+            return p
+
+
+"""Convert a coordinate to the robot's coordinate system"""
+def convertToRcs(x, y):
     list1 = []
-    heading = getHeading()
+    robotPos = getPosition()
+    robotHeading = getHeading()
 
-    xP = heading['X']
-    yP = heading['Y']
+    x0 = robotPos['X']
+    y0 = robotPos['Y']
 
-    # The inverse of the difference of the angles gives the right yaw
-    yaw = atan2(1/yP-y0, 1/xP-x0)
-    print 'yaw, ', yaw
-    # Convert the coordinates using this rule
-    x = x0 + xP*cos(yaw) - yP*sin(yaw)
-    y = y0 + xP*sin(yaw) + yP*cos(yaw)
+    # Calculate the angle between the robot's pose and the world coordinate system
+    hx = robotHeading['X']
+    hy = robotHeading['Y']
+    yaw = atan2(hy-y0, hx-x0)
+    print 'yaw: ', yaw
 
-    list1.insert(0,x)
-    list1.insert(1,y)
+    # Calculate the difference between robot's coordinates and goal point coordinates
+    xCalc = x - x0
+    yCalc = y - y0
+
+    # Calculate the goal point coordinates corresponding to the robot's coordinates
+    # using linear algebra rotation matrices
+    xP = cos(yaw)*xCalc - sin(yaw)*yCalc
+    yP = sin(yaw)*xCalc + cos(yaw)*yCalc
+
+    list1.insert(0,xP)
+    list1.insert(1,yP)
 
     return list1
 
 """Calculate the curvature to the goal point for the robot to follow"""
-def calculateCurvatureToGp():
+def calculateCurvatureToGp(gP):
 
     # Convert the goal point to the robot's coordinates
-    gP = getGoalPoint()
-    gPList = convertToRcs(gP[0], gP[1])
+    gPList = convertToRcs(gP['X'], gP['Y'])
 
+    print 'Gp original: ', gP
     print 'gp converted: ', gPList
     x = gPList[0]
     y = gPList[1]
 
     # Calculate the tangent to the goal point, l
-    l = sqrt(x**2) + sqrt(y**2)
+    l = sqrt(x**2 + y**2)
 
     # Calculate the curvature, gamma
-    gamma = 2*x / l**2
-    print 'gamma: ', gamma
-    print ' '
+    gamma = 2*y / l**2
 
     return gamma
 
 
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
-
+    path = makePath()
+    ls = 0.3
     try:
-        for t in range(1000):
-            print 'Robot Current position: X:{X:.3}, Y:{Y:.3}'.format(**getPosition())
-            print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
-            pos = getPosition()
-            print 'Robots position in RCS: ', convertToRcs(pos['X'], pos['Y'])
+        while(len(path) != 0):
+            #print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
+            #print 'getPose orientation', getPose()['Pose']['Orientation']
+            print 'current path size: ', len(path)
 
-            gamma = calculateCurvatureToGp()
-            linearSpeed = 0.2
-            angularSpeed = gamma * linearSpeed
-            response = postSpeed(angularSpeed, linearSpeed)
-            time.sleep(0.1)
+            pos = getPosition()
+            print 'Robot current pos: ', pos
+            gP = getGoalPoint(path, pos)
+            gamma = calculateCurvatureToGp(gP)
+
+            response = postSpeed(gamma*ls, ls)
+            print ' '
+            time.sleep(5)
 
 
     except UnexpectedResponse, ex:
