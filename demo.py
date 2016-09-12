@@ -13,7 +13,7 @@ index = 0
 import httplib, json, time
 from pprint import pprint
 
-from math import sin, cos, pi, atan2, sqrt
+from math import sin, cos, pi, atan2, sqrt, acos
 
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
@@ -162,28 +162,26 @@ def getGoalPoint(path, rpos):
 
 
 """Convert a coordinate to the robot's coordinate system"""
-def convertToRcs(x, y):
+def convertToRcs(pos, orientation, gP):
     list1 = []
-    robotPos = getPosition()
-    robotHeading = getHeading()
-
-    x0 = robotPos['X']
-    y0 = robotPos['Y']
+    w = round(orientation['W'],2)
+    #robotHeading = getHeading()
 
     # Calculate the angle between the robot's pose and the world coordinate system
-    hx = robotHeading['X']
-    hy = robotHeading['Y']
-    yaw = atan2(hy-y0, hx-x0)
-    print 'yaw: ', yaw
+    #hx = robotHeading['X']
+    #hy = robotHeading['Y']
+    #yaw = atan2(hy-y0, hx-x0)
+    angle = 2 * acos(w)
+    print 'angle: ', angle
 
     # Calculate the difference between robot's coordinates and goal point coordinates
-    xCalc = x - x0
-    yCalc = y - y0
+    dx = gP['X'] - pos['X']
+    dy = gP['Y'] - pos['Y']
 
     # Calculate the goal point coordinates corresponding to the robot's coordinates
     # using linear algebra rotation matrices
-    xP = cos(yaw)*xCalc - sin(yaw)*yCalc
-    yP = sin(yaw)*xCalc + cos(yaw)*yCalc
+    xP = (cos(angle)*dx) - (sin(angle)*dy)
+    yP = (sin(angle)*dx) + (cos(angle)*dy)
 
     list1.insert(0,xP)
     list1.insert(1,yP)
@@ -191,21 +189,18 @@ def convertToRcs(x, y):
     return list1
 
 """Calculate the curvature to the goal point for the robot to follow"""
-def calculateCurvatureToGp(gP):
+def calculateCurvatureToGp(robotGp):
 
-    # Convert the goal point to the robot's coordinates
-    gPList = convertToRcs(gP['X'], gP['Y'])
-
-    print 'Gp original: ', gP
-    print 'gp converted: ', gPList
-    x = gPList[0]
-    y = gPList[1]
+    print 'gp converted: ', robotGp
+    x = robotGp[0]
+    y = robotGp[1]
 
     # Calculate the tangent to the goal point, l
-    l = sqrt(x**2 + y**2)
+    l = sqrt((x**2) + (y**2))
+    print 'new l: ', l
 
     # Calculate the curvature, gamma
-    gamma = 2*y / l**2
+    gamma = (2*x)/(l**2)
 
     return gamma
 
@@ -216,14 +211,19 @@ if __name__ == '__main__':
     ls = 0.3
     try:
         while(len(path) != 0):
-            #print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
-            #print 'getPose orientation', getPose()['Pose']['Orientation']
+            print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
             print 'current path size: ', len(path)
 
             pos = getPosition()
+            orientation = getPose()['Pose']['Orientation']
             print 'Robot current pos: ', pos
+            print 'Robot current orientation: ', orientation
+
             gP = getGoalPoint(path, pos)
-            gamma = calculateCurvatureToGp(gP)
+            print 'Gp original: ', gP
+            robotGp = convertToRcs(pos, orientation, gP)
+            gamma = calculateCurvatureToGp(robotGp)
+            print 'gamma: ', gamma
 
             response = postSpeed(gamma*ls, ls)
             print ' '
