@@ -147,22 +147,25 @@ def makePath():
 
 """Get the next goal point from the robot's position from a fixed look-a-head distance"""
 def getGoalPoint(path, rpos):
-    lookAHead = 0.02
+    lookAHead = 1
 
     for i in range (len(path)):
-        p = path.pop()
-        dx = p['X'] - rpos['X']
-        dy = p['Y'] - rpos['Y']
+        if (len(path) > 0):
+            # Look at the last index
+            p = path[len(path)-1]
+            dx = p['X'] - rpos['X']
+            dy = p['Y'] - rpos['Y']
 
-        l = pythagorasHyp(dx,dy)
-        print 'pythagoras: ', l
+            l = pythagorasHyp(dx,dy)
+            print 'pythagoras: ', l
 
-        print 'popped path: ', p, 'index: ', i
-
-        if l > lookAHead:
-            print 'l: ', l
-            print 'i: ', i
-            return p
+            if l < lookAHead:
+                path.pop()
+                print 'popped path: ', p, 'index: ', i
+            else:
+                print 'l: ', l
+                print 'i: ', i
+                return p
 
 
 """Convert a coordinate to the robot's coordinate system"""
@@ -203,14 +206,12 @@ def calculateCurvatureToGp(convertedGp):
 
     # Calculate the curvature, gamma
     gamma = (2*yP)/(l**2)
-
     return gamma
-
 
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
     path = makePath()
-    ls = 0.5
+    ls = 1
     try:
         while(len(path) != 0):
             print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
@@ -229,7 +230,7 @@ if __name__ == '__main__':
 
             response = postSpeed(gamma*ls, ls)
             print ' '
-            time.sleep(0.2)
+            time.sleep(0.1)
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
