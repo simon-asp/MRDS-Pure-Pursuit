@@ -131,6 +131,10 @@ def getBearing():
     """Returns the XY Orientation as a bearing unit vector"""
     return bearing(getPose()['Pose']['Orientation'])
 
+"""Pythagoras theorem"""
+def pythagorasHyp(x, y):
+    return sqrt((x ** 2) + (y ** 2))
+
 """Add all coordinates in the path to a path stack, and reverse it so it works as a stack"""
 def makePath():
     stack = []
@@ -143,14 +147,14 @@ def makePath():
 
 """Get the next goal point from the robot's position from a fixed look-a-head distance"""
 def getGoalPoint(path, rpos):
-    lookAHead = 0.03
+    lookAHead = 0.02
 
     for i in range (len(path)):
         p = path.pop()
         dx = p['X'] - rpos['X']
         dy = p['Y'] - rpos['Y']
 
-        l = sqrt((dx**2)+(dy**2))
+        l = pythagorasHyp(dx,dy)
         print 'pythagoras: ', l
 
         print 'popped path: ', p, 'index: ', i
@@ -162,45 +166,43 @@ def getGoalPoint(path, rpos):
 
 
 """Convert a coordinate to the robot's coordinate system"""
-def convertToRcs(pos, orientation, gP):
+def convertToRcs(pos, gP):
     list1 = []
-    w = round(orientation['W'],2)
-    #robotHeading = getHeading()
+    robotHeading = getHeading()
 
-    # Calculate the angle between the robot's pose and the world coordinate system
-    #hx = robotHeading['X']
-    #hy = robotHeading['Y']
-    #yaw = atan2(hy-y0, hx-x0)
-    angle = 2 * acos(w)
-    print 'angle: ', angle
-
-    # Calculate the difference between robot's coordinates and goal point coordinates
+    # Calculate distance to the goal point from the robot
     dx = gP['X'] - pos['X']
     dy = gP['Y'] - pos['Y']
+    l = pythagorasHyp(dx,dy)
 
-    # Calculate the goal point coordinates corresponding to the robot's coordinates
-    # using linear algebra rotation matrices
-    xP = (cos(angle)*dx) - (sin(angle)*dy)
-    yP = (sin(angle)*dx) + (cos(angle)*dy)
+    # Calculate the angle between the robot's pose and the world coordinate system
+    hx = robotHeading['X']
+    hy = robotHeading['Y']
+    robotAngle = atan2(hy, hx)
 
-    list1.insert(0,xP)
-    list1.insert(1,yP)
+    # Calculate the angle between the goal point and the world coordinate system
+    pointAngle = atan2(gP['Y']-pos['Y'], gP['X']-pos['X'])
+
+    # Calculate the angle between the goal point and the robot coordinate system
+    diffAngle = pointAngle - robotAngle
+    print 'diffangle: ', diffAngle
+
+    # Calculate the goal point's y-coordinate relative to the robot's coordinate system
+    yP = sin(diffAngle) / l
+
+    list1.insert(0,yP)
+    list1.insert(1,l)
 
     return list1
 
 """Calculate the curvature to the goal point for the robot to follow"""
-def calculateCurvatureToGp(robotGp):
+def calculateCurvatureToGp(convertedGp):
 
-    print 'gp converted: ', robotGp
-    x = robotGp[0]
-    y = robotGp[1]
-
-    # Calculate the tangent to the goal point, l
-    l = sqrt((x**2) + (y**2))
-    print 'new l: ', l
+    yP = convertedGp[0]
+    l = convertedGp[1]
 
     # Calculate the curvature, gamma
-    gamma = (2*x)/(l**2)
+    gamma = (2*yP)/(l**2)
 
     return gamma
 
@@ -208,7 +210,7 @@ def calculateCurvatureToGp(robotGp):
 if __name__ == '__main__':
     print 'Sending commands to MRDS server', MRDS_URL
     path = makePath()
-    ls = 0.3
+    ls = 0.5
     try:
         while(len(path) != 0):
             print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
@@ -221,14 +223,13 @@ if __name__ == '__main__':
 
             gP = getGoalPoint(path, pos)
             print 'Gp original: ', gP
-            robotGp = convertToRcs(pos, orientation, gP)
-            gamma = calculateCurvatureToGp(robotGp)
+            convertedGp = convertToRcs(pos, gP)
+            gamma = calculateCurvatureToGp(convertedGp)
             print 'gamma: ', gamma
 
             response = postSpeed(gamma*ls, ls)
             print ' '
-            time.sleep(5)
-
+            time.sleep(0.2)
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
