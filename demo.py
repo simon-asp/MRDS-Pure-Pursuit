@@ -146,15 +146,14 @@ def makePath():
         return stack
 
 """Get the next goal point from the robot's position from a fixed look-a-head distance"""
-def getGoalPoint(path, rpos):
+def getGoalPoint(path, pos):
     lookAHead = 1
-
-    for i in range (len(path)):
-        if (len(path) > 0):
+    if path:
+        for i in range (len(path)):
             # Look at the last index
             p = path[len(path)-1]
-            dx = p['X'] - rpos['X']
-            dy = p['Y'] - rpos['Y']
+            dx = p['X'] - pos['X']
+            dy = p['Y'] - pos['Y']
 
             l = pythagorasHyp(dx,dy)
             print 'pythagoras: ', l
@@ -166,6 +165,8 @@ def getGoalPoint(path, rpos):
                 print 'l: ', l
                 print 'i: ', i
                 return p
+    else:
+        print "Stack failed"
 
 
 """Convert a coordinate to the robot's coordinate system"""
@@ -213,7 +214,7 @@ if __name__ == '__main__':
     path = makePath()
     ls = 1
     try:
-        while(len(path) != 0):
+        while path:
             print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
             print 'current path size: ', len(path)
 
