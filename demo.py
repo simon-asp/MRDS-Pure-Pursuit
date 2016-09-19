@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
             response = postSpeed(gamma*ls, ls)
             print ' '
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
