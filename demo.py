@@ -51,7 +51,6 @@ def bearing(q):
 def rotate(q, v):
     return vector(qmult(qmult(q, quaternion(v)), conjugate(q)))
 
-
 def quaternion(v):
     q = v.copy()
     q['W'] = 0.0
@@ -105,8 +104,7 @@ def makePath():
         return stack
 
 """Get the next goal point from the robot's position from a fixed look-a-head distance"""
-def getGoalPoint(path, pos):
-    lookAHead = 1
+def getGoalPoint(path, pos, lookAHead):
     if path:
         for i in range (len(path)):
             # Look at the last index
@@ -115,14 +113,10 @@ def getGoalPoint(path, pos):
             dy = p['Y'] - pos['Y']
 
             l = pythagorasHyp(dx,dy)
-            print 'pythagoras: ', l
 
             if l < lookAHead:
                 path.pop()
-                print 'popped path: ', p, 'index: ', i
             else:
-                print 'l: ', l
-                print 'i: ', i
                 return p
     else:
         print "Stack failed"
@@ -148,7 +142,6 @@ def convertToRcs(pos, gP):
 
     # Calculate the angle between the goal point and the robot coordinate system
     diffAngle = pointAngle - robotAngle
-    print 'diffangle: ', diffAngle
 
     # Calculate the goal point's y-coordinate relative to the robot's coordinate system
     yP = sin(diffAngle) / l
@@ -169,28 +162,23 @@ def calculateCurvatureToGp(convertedGp):
     return gamma
 
 if __name__ == '__main__':
-    print 'Sending commands to MRDS server', MRDS_URL
     path = makePath()
     ls = 1
+    lookAHead = 0.9
     try:
         while path:
-            print 'Robot Current heading vector: X:{X:.3}, Y:{Y:.3}'.format(**getHeading())
-            print 'current path size: ', len(path)
-
             pos = getPosition()
             orientation = getPose()['Pose']['Orientation']
-            print 'Robot current pos: ', pos
-            print 'Robot current orientation: ', orientation
+            gP = getGoalPoint(path, pos, lookAHead)
 
-            gP = getGoalPoint(path, pos)
-            print 'Gp original: ', gP
-            convertedGp = convertToRcs(pos, gP)
-            gamma = calculateCurvatureToGp(convertedGp)
-            print 'gamma: ', gamma
-
-            response = postSpeed(gamma*ls, ls)
-            print ' '
-            time.sleep(0.01)
+            if(gP):
+                convertedGp = convertToRcs(pos, gP)
+                gamma = calculateCurvatureToGp(convertedGp)
+                response = postSpeed(gamma*ls, ls)
+                #time.sleep(0.01)
+        # Stop
+        response = postSpeed(0,0)
+        print ('Completed!')
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
