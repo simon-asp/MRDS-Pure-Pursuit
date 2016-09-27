@@ -10,16 +10,14 @@ from serverIp import *
 MRDS_URL = ip
 index = 0
 
-import httplib, json, time
+import httplib, json, time, sys
 from pprint import pprint
 
 from math import sin, cos, pi, atan2, sqrt, acos
 
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
-
 class UnexpectedResponse(Exception): pass
-
 
 def postSpeed(angularSpeed, linearSpeed):
     """Sends a speed command to the MRDS server"""
@@ -33,41 +31,6 @@ def postSpeed(angularSpeed, linearSpeed):
         return response
     else:
         raise UnexpectedResponse(response)
-
-
-def getLaser():
-    """Requests the current laser scan from the MRDS server and parses it into a dict"""
-    mrds = httplib.HTTPConnection(MRDS_URL)
-    mrds.request('GET', '/lokarria/laser/echoes')
-    response = mrds.getresponse()
-    if (response.status == 200):
-        laserData = response.read()
-        response.close()
-        return json.loads(laserData)
-    else:
-        return response
-
-
-def getLaserAngles():
-    """Requests the current laser properties from the MRDS server and parses it into a dict"""
-    mrds = httplib.HTTPConnection(MRDS_URL)
-    mrds.request('GET', '/lokarria/laser/properties')
-    response = mrds.getresponse()
-    if (response.status == 200):
-        laserData = response.read()
-        response.close()
-        properties = json.loads(laserData)
-        beamCount = int((properties['EndAngle'] - properties['StartAngle']) / properties['AngleIncrement'])
-        a = properties['StartAngle']  # +properties['AngleIncrement']
-        angles = []
-        while a <= properties['EndAngle']:
-            angles.append(a)
-            a += pi / 180  # properties['AngleIncrement']
-        # angles.append(properties['EndAngle']-properties['AngleIncrement']/2)
-        return angles
-    else:
-        raise UnexpectedResponse(response)
-
 
 def getPose():
     """Reads the current position and orientation from the MRDS"""
@@ -127,10 +90,6 @@ def getPosition():
     """Returns the XYZ position"""
     return getPose()['Pose']['Position']
 
-def getBearing():
-    """Returns the XY Orientation as a bearing unit vector"""
-    return bearing(getPose()['Pose']['Orientation'])
-
 """Pythagoras theorem"""
 def pythagorasHyp(x, y):
     return sqrt((x ** 2) + (y ** 2))
@@ -138,7 +97,7 @@ def pythagorasHyp(x, y):
 """Add all coordinates in the path to a path stack, and reverse it so it works as a stack"""
 def makePath():
     stack = []
-    with open('path/path-around-table.json') as path_file:
+    with open(sys.argv[1]) as path_file:
         jsonPath = json.load(path_file)
         for i in range (len(jsonPath)):
             stack.append(jsonPath[i]['Pose']['Position'])
