@@ -11,9 +11,7 @@ MRDS_URL = ip
 index = 0
 
 import httplib, json, time, sys
-from pprint import pprint
-
-from math import sin, cos, pi, atan2, sqrt, acos
+from math import *
 
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
@@ -162,9 +160,11 @@ def calculateCurvatureToGp(convertedGp):
     return gamma
 
 if __name__ == '__main__':
+    starttime = time.time()
+
     path = makePath()
     ls = 1
-    lookAHead = 0.9
+    lookAHead = 0.7
     try:
         while path:
             pos = getPosition()
@@ -175,10 +175,13 @@ if __name__ == '__main__':
                 convertedGp = convertToRcs(pos, gP)
                 gamma = calculateCurvatureToGp(convertedGp)
                 response = postSpeed(gamma*ls, ls)
-                #time.sleep(0.01)
-        # Stop
+                time.sleep(0.01)
         response = postSpeed(0,0)
-        print ('Completed!')
+
+        endtime = time.time()
+        runtime = endtime - starttime
+        print "end of run"
+        print "The robot finished the path in:", runtime, "seconds"
 
     except UnexpectedResponse, ex:
         print 'Unexpected response from server when reading position:', ex
